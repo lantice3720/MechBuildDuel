@@ -1,5 +1,5 @@
--- 위치: src/server/DamageHandler.server.lua
--- 기능: 로봇 부위의 데미지 및 파괴를 중앙에서 처리합니다.
+-- 로봇 부위의 데미지 및 파괴를 중앙에서 처리
+-- TODO : ModuleScript로 가공 및 로직 개선선
 
 local function processPartDamage(partInstance: DataModel, damageAmount: number, instigatorPlayer: Player?)
 	if not partInstance or not partInstance:IsA("BasePart") then

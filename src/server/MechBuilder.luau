@@ -1,7 +1,10 @@
--- 위치: src/shared/MechBuilder.lua
--- 기능: 플레이어가 탑승할 로봇 기체의 모델을 스크립트로 생성하고 반환합니다.
+-- 플레이어가 탑승할 로봇 기체의 모델을 생성하고 반환합니다.
 
-local MechBuilder = {}
+export type MechBuilder = {
+	createMechModel: (name: string) -> Model
+}
+
+local MechBuilder: MechBuilder = {}
 
 -- (DamageHandler 관련 부분은 이전과 동일하게 유지하거나 필요에 따라 수정)
 local DamageHandler -- : ModuleScript? 

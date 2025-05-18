@@ -4,14 +4,27 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/shared"
+      },
+      "MechControlEvent": {
+        "$className": "RemoteEvent"
+      },
+      "PilotingStateChangedEvent": {
+        "$className": "RemoteEvent"
       }
     },
 
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
+      }
+    },
+
+    "ServerStorage": {
+      "ServerAssets": {
+        "$path": "src/serverassets"
       }
     },
 

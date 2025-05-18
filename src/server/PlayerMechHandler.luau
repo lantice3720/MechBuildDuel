@@ -1,12 +1,20 @@
--- 위치: src/server/PlayerMechHandler.server.lua
--- 기능: 플레이어 캐릭터 스폰 시 로봇을 생성하고, 플레이어를 해당 로봇의 좌석에 탑승시킵니다.
+--!strict
+-- 플레이어 캐릭터 스폰 시 로봇을 생성하고, 플레이어를 해당 로봇의 좌석에 탑승
+
+export type PlayerMechHandler = {
+	initialize: () -> (),
+}
+
+local PlayerMechHandler: PlayerMechHandler = {}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-local MechBuilder = require(ReplicatedStorage.Shared.MechBuilder)
+local MechBuilder = require(ServerScriptService.Server.MechBuilder)
+local PilotingStateChangedEvent: RemoteEvent = ReplicatedStorage:WaitForChild("PilotingStateChangedEvent")
 
--- 플레이어별 현재 탑승 중인 로봇(의 Seat) 또는 로봇 모델을 추적할 수 있습니다.
+-- 플레이어별 현재 탑승 중인 로봇(의 Seat) 또는 로봇 모델 추적
 local playerPilotingMech: {[Player]: Seat | Model} = {} 
 
 local function spawnAndPilotMech(player: Player, character: Model)
@@ -21,7 +29,8 @@ local function spawnAndPilotMech(player: Player, character: Model)
 			if character and character:FindFirstChildOfClass("Humanoid") and not character.Humanoid.Sit then
 				local seat = existingSeatOrMech:IsA("Seat") and existingSeatOrMech or existingSeatOrMech:FindFirstChild("CockpitSeat")
 				if seat and seat:IsA("Seat") then
-					character.Humanoid:Sit(seat)
+					seat:Sit(character.Humanoid)
+					PilotingStateChangedEvent:FireClient(player, true)
 				end
 			end
 			return
@@ -70,6 +79,8 @@ local function spawnAndPilotMech(player: Player, character: Model)
 		task.wait(0.1) -- Humanoid 상태 변경을 위한 짧은 지연
 		cockpitSeat:Sit(humanoid)
 		playerPilotingMech[player] = cockpitSeat -- 현재 탑승한 좌석을 기록
+
+		PilotingStateChangedEvent:FireClient(player, true)
 		print(string.format("[PlayerMechHandler] %s가 %s의 %s에 탑승 완료.", player.Name, mechModel.Name, cockpitSeat.Name))
 	else
 		warn(string.format("[PlayerMechHandler] %s의 캐릭터에서 Humanoid를 찾을 수 없어 탑승시키지 못했습니다.", player.Name))
@@ -84,9 +95,22 @@ local function spawnAndPilotMech(player: Player, character: Model)
 			playerPilotingMech[player] = nil
 			if humanoid and humanoid.Sit and humanoid.SeatPart == cockpitSeat then
 				humanoid.Sit = false -- 플레이어 강제 하차
+
+				PilotingStateChangedEvent:FireClient(player, false)
+				print(string.format("[PlayerMechHandler] %s 하차 완료. 클라이언트에 알림.", player.Name))
 			end
 		end
 		-- 여기서 플레이어에게 알림을 주거나, 리스폰 로직 등을 추가할 수 있습니다.
+	end)
+
+	-- 플레이어가 좌석에서 일어설 때 (예: '점프' 키로 하차) 처리
+	humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
+		if not humanoid.Sit and playerPilotingMech[player] == cockpitSeat then -- 앉아있지 않고, 현재 이 좌석에 탑승 중이었다면
+			print(string.format("[PlayerMechHandler] %s가 %s에서 자발적으로 하차함.", player.Name, cockpitSeat.Name))
+			playerPilotingMech[player] = nil
+			-- 클라이언트에게 탑승 종료 알림 (false: 탑승 종료)
+			PilotingStateChangedEvent:FireClient(player, false)
+		end
 	end)
 end
 
@@ -104,7 +128,10 @@ local function onPlayerAdded(player: Player)
 	end)
 end
 
-Players.PlayerAdded:Connect(onPlayerAdded)
+function PlayerMechHandler.initialize()
+	print("[PlayerMechHandler] 로드됨.")
+	Players.PlayerAdded:Connect(onPlayerAdded)
+end
 
-print("[PlayerMechHandler] 탑승형 로봇 핸들러 서버 스크립트 로드됨.")
 
+return PlayerMechHandler
