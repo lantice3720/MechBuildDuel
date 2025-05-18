@@ -14,7 +14,10 @@ local isMoving = false
 
 -- 키 입력 처리 함수
 local function onInputBegan(input, gameProcessedEvent)
+	print("bforeinputbegan")
 	if gameProcessedEvent then return end -- 게임 내부 UI 등이 입력을 이미 처리했다면 무시
+
+	print("inputbegan")
 
 	if input.KeyCode == Enum.KeyCode.W then
 		moveDirection = moveDirection + Vector3.new(0, 0, -1) -- 전진
@@ -32,7 +35,10 @@ local function onInputBegan(input, gameProcessedEvent)
 end
 
 local function onInputEnded(input, gameProcessedEvent)
+	print("bforeinputended")
 	if gameProcessedEvent then return end
+
+	print("inputended")
 
 	if input.KeyCode == Enum.KeyCode.W then
 		moveDirection = moveDirection - Vector3.new(0, 0, -1)
@@ -52,10 +58,12 @@ end
 -- 매 프레임마다 이동 방향을 서버로 전송 (움직임이 있을 때만)
 RunService.RenderStepped:Connect(function()
 	if isMoving then
+		print("ismoving")
 		-- 이동 방향 벡터의 크기를 1로 정규화 (대각선 이동 시 속도 빨라짐 방지)
 		local normalizedDir = moveDirection.Magnitude > 0 and moveDirection.Unit or Vector3.new(0,0,0)
 		robotMoveEvent:FireServer(normalizedDir)
 	else
+		print("isnotmoving")
 		-- 움직임이 멈췄을 때도 서버에 알릴 수 있습니다 (필요하다면).
 		-- 여기서는 단순화를 위해 움직일 때만 전송합니다.
 		-- 정지 신호를 보내려면: robotMoveEvent:FireServer(Vector3.new(0,0,0))
